@@ -5,19 +5,19 @@ import (
 	"net/http"
 )
 
-// SetRequestIDHeader
+// SetRequestID //
 
-type SetRequestIDHeader struct {
+type SetRequestIDTransport struct {
 	http.RoundTripper
 }
 
-func NewSetRequestIDHeader(rt http.RoundTripper) *SetRequestIDHeader {
-	return &SetRequestIDHeader{
+func SetRequestID(rt http.RoundTripper) *SetRequestIDTransport {
+	return &SetRequestIDTransport{
 		RoundTripper: rt,
 	}
 }
 
-func (t *SetRequestIDHeader) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *SetRequestIDTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	ctx := req.Context()
 
 	requestID := aucontext.GetRequestID(ctx)

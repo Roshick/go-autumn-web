@@ -34,17 +34,17 @@ func (r *ExpectedRequest) WillReturnResponse(response *MockResponse) {
 	r.response = response
 }
 
-type Impl struct {
+type MockTransport struct {
 	expectedRequests []*ExpectedRequest
 }
 
-func New() *Impl {
-	return &Impl{
+func Mock() *MockTransport {
+	return &MockTransport{
 		expectedRequests: make([]*ExpectedRequest, 0),
 	}
 }
 
-func (c *Impl) RoundTrip(req *http.Request) (*http.Response, error) {
+func (c *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var next *ExpectedRequest
 	next, c.expectedRequests = c.expectedRequests[0], c.expectedRequests[1:]
 
@@ -91,7 +91,7 @@ func (c *Impl) RoundTrip(req *http.Request) (*http.Response, error) {
 	return nil, nil
 }
 
-func (c *Impl) ExpectRequest(request Request) *ExpectedRequest {
+func (c *MockTransport) ExpectRequest(request Request) *ExpectedRequest {
 	e := &ExpectedRequest{
 		request: request,
 	}
@@ -99,7 +99,7 @@ func (c *Impl) ExpectRequest(request Request) *ExpectedRequest {
 	return e
 }
 
-func (c *Impl) Reset() {
+func (c *MockTransport) Reset() {
 	c.expectedRequests = make([]*ExpectedRequest, 0)
 }
 

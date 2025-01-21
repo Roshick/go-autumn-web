@@ -10,9 +10,9 @@ import (
 	"strings"
 )
 
-// MetricsRecorder //
+// RecordRequest //
 
-type MetricsRecorder struct {
+type RecordRequestTransport struct {
 	http.RoundTripper
 
 	clientName string
@@ -23,8 +23,8 @@ type MetricsRecorder struct {
 	httpClientResBytes  metric.Float64Histogram
 }
 
-func NewMetricsRecorder(rt http.RoundTripper, clientName string) *MetricsRecorder {
-	transport := &MetricsRecorder{
+func RecordRequestMetrics(rt http.RoundTripper, clientName string) *RecordRequestTransport {
+	transport := &RecordRequestTransport{
 		RoundTripper: rt,
 		clientName:   clientName,
 	}
@@ -32,7 +32,7 @@ func NewMetricsRecorder(rt http.RoundTripper, clientName string) *MetricsRecorde
 	return transport
 }
 
-func (t *MetricsRecorder) init() {
+func (t *RecordRequestTransport) init() {
 	meterName := fmt.Sprintf("client.%s", strings.ReplaceAll(t.clientName, "-", "_"))
 	meter := otel.GetMeterProvider().Meter(meterName)
 
@@ -54,7 +54,7 @@ func (t *MetricsRecorder) init() {
 	)
 }
 
-func (t *MetricsRecorder) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *RecordRequestTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.recordRequest(req.Context(), req.Method, int(req.ContentLength))
 
 	res, err := t.RoundTripper.RoundTrip(req)
@@ -69,7 +69,7 @@ func (t *MetricsRecorder) RoundTrip(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func (t *MetricsRecorder) recordRequest(ctx context.Context, method string, size int) {
+func (t *RecordRequestTransport) recordRequest(ctx context.Context, method string, size int) {
 	if size > 0 {
 		t.httpClientReqBytes.Record(ctx, float64(size),
 			metric.WithAttributes(
@@ -80,7 +80,7 @@ func (t *MetricsRecorder) recordRequest(ctx context.Context, method string, size
 	}
 }
 
-func (t *MetricsRecorder) recordResponse(ctx context.Context, method string, status int, size int, err error) {
+func (t *RecordRequestTransport) recordResponse(ctx context.Context, method string, status int, size int, err error) {
 	statusStr := fmt.Sprintf("%d", status)
 
 	t.httpClientCounts.Add(ctx, 1,
