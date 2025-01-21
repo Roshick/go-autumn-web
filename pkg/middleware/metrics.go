@@ -15,10 +15,11 @@ import (
 // RecordRequestMetrics //
 
 func RecordRequestMetrics() func(next http.Handler) http.Handler {
-	meter := otel.GetMeterProvider().Meter("server")
+	meter := otel.GetMeterProvider().Meter("")
+
 	httpServerReqSecs, _ := meter.Float64Histogram(
-		"http.server.requests.seconds",
-		metric.WithDescription("How long it took to process requests, partitioned by status code, method, and HTTP path."),
+		"http.server.request.duration",
+		metric.WithDescription("Duration of HTTP server request processing in seconds, categorized by status code, method, and HTTP path."),
 	)
 
 	return func(next http.Handler) http.Handler {

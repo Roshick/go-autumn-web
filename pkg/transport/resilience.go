@@ -14,7 +14,7 @@ type TimeoutContextTransport struct {
 	timeout time.Duration
 }
 
-func NewTimeoutContextTransport(rt http.RoundTripper, timeout time.Duration) *TimeoutContextTransport {
+func TimeoutContext(rt http.RoundTripper, timeout time.Duration) *TimeoutContextTransport {
 	return &TimeoutContextTransport{
 		RoundTripper: rt,
 		timeout:      timeout,

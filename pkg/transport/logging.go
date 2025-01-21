@@ -7,19 +7,19 @@ import (
 	"time"
 )
 
-// RequestLogger //
+// LogRequest //
 
-type RequestLogger struct {
+type LogRequestTransport struct {
 	http.RoundTripper
 }
 
-func NewRequestLogger(rt http.RoundTripper) *RequestLogger {
-	return &RequestLogger{
+func LogRequest(rt http.RoundTripper) *LogRequestTransport {
+	return &LogRequestTransport{
 		RoundTripper: rt,
 	}
 }
 
-func (t *RequestLogger) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *LogRequestTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.logRequest(req.Context(), req.Method, req.URL.String())
 
 	startTime := time.Now()
@@ -33,11 +33,11 @@ func (t *RequestLogger) RoundTrip(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func (t *RequestLogger) logRequest(ctx context.Context, method string, requestUrl string) {
+func (t *LogRequestTransport) logRequest(ctx context.Context, method string, requestUrl string) {
 	aulogging.Logger.Ctx(ctx).Info().Printf("upstream call %s %s", method, requestUrl)
 }
 
-func (t *RequestLogger) logResponse(ctx context.Context, method string, requestUrl string, responseStatusCode int, err error, startTime time.Time) {
+func (t *LogRequestTransport) logResponse(ctx context.Context, method string, requestUrl string, responseStatusCode int, err error, startTime time.Time) {
 	reqDuration := time.Now().Sub(startTime).Milliseconds()
 	if err != nil {
 		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("upstream call %s %s -> %d FAILED (%d ms)", method, requestUrl, responseStatusCode, reqDuration)

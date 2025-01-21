@@ -13,7 +13,8 @@ import (
 // TimeoutContext //
 
 type TimeoutContextOptions struct {
-	Timeout time.Duration
+	Timeout       time.Duration
+	ErrorResponse render.Renderer
 }
 
 func TimeoutContext(options TimeoutContextOptions) func(next http.Handler) http.Handler {

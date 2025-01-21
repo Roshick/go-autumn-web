@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"github.com/Roshick/go-autumn-slog/pkg/logging"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
@@ -37,28 +36,6 @@ func AddLoggerToContext(next http.Handler) http.Handler {
 		next.ServeHTTP(w, req.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
-}
-
-// AddContextCancelLogging //
-
-type LogContextCancellationOptions struct {
-	Description string
-}
-
-func LogContextCancellation(options LogContextCancellationOptions) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, req *http.Request) {
-			ctx := req.Context()
-
-			next.ServeHTTP(w, req)
-
-			cause := context.Cause(ctx)
-			if cause != nil {
-				aulogging.Logger.NoCtx().Info().WithErr(cause).Printf("context '%s' is cancelled", options.Description)
-			}
-		}
-		return http.HandlerFunc(fn)
-	}
 }
 
 // LogRequest //
