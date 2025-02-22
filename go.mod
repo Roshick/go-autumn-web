@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/Roshick/go-autumn-slog v0.3.1
 	github.com/StephanHCB/go-autumn-logging v0.4.0
-	github.com/go-chi/chi/v5 v5.2.0
+	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/render v1.0.3
 	github.com/lestrrat-go/jwx/v2 v2.1.3
 	github.com/stretchr/testify v1.10.0
