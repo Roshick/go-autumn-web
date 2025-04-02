@@ -2,7 +2,7 @@ package context
 
 import (
 	"context"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 )
 
 func GetJWT(ctx context.Context) jwt.Token {

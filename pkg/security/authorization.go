@@ -6,7 +6,7 @@ import (
 	"crypto/subtle"
 	aucontext "github.com/Roshick/go-autumn-web/pkg/context"
 	"github.com/Roshick/go-autumn-web/pkg/middleware"
-	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"net/http"
 )
 
