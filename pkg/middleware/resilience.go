@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"github.com/go-chi/render"
 	"net/http"
 	"runtime/debug"
@@ -13,7 +14,8 @@ import (
 // TimeoutContext //
 
 type TimeoutContextOptions struct {
-	Timeout time.Duration
+	Timeout       time.Duration
+	ErrorResponse render.Renderer
 }
 
 func TimeoutContext(options TimeoutContextOptions) func(next http.Handler) http.Handler {
@@ -25,6 +27,12 @@ func TimeoutContext(options TimeoutContextOptions) func(next http.Handler) http.
 			defer cancel()
 
 			next.ServeHTTP(w, req.WithContext(ctx))
+
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				if err := render.Render(w, req, options.ErrorResponse); err != nil {
+					panic(err)
+				}
+			}
 		}
 		return http.HandlerFunc(fn)
 	}
@@ -45,7 +53,7 @@ func RecoverPanic(options RecoverPanicOptions) func(next http.Handler) http.Hand
 				if rvr != nil && rvr != http.ErrAbortHandler {
 					aulogging.Logger.Ctx(ctx).Error().With(LogFieldStackTrace, string(debug.Stack())).Print("recovered from panic")
 					if err := render.Render(w, req, options.ErrorResponse); err != nil {
-						w.WriteHeader(http.StatusInternalServerError)
+						panic(err)
 					}
 				}
 			}()
