@@ -1,7 +1,8 @@
-package context
+package tracing
 
 import (
 	"context"
+	"github.com/Roshick/go-autumn-web/contextutils"
 )
 
 type RequestID string
@@ -11,7 +12,7 @@ func (c RequestID) String() string {
 }
 
 func GetRequestID(ctx context.Context) *string {
-	requestID := GetValue[RequestID](ctx)
+	requestID := contextutils.GetValue[RequestID](ctx)
 	if requestID != nil {
 		requestIDString := (*requestID).String()
 		return &requestIDString

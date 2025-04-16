@@ -1,36 +1,10 @@
-package middleware
+package cors
 
 import (
-	"context"
-	"github.com/Roshick/go-autumn-web/pkg/header"
-	"github.com/go-chi/render"
+	"github.com/Roshick/go-autumn-web/header"
 	"net/http"
 	"strings"
 )
-
-// RequireAuthorization //
-
-type AuthorizationFn func(*http.Request) (context.Context, bool)
-
-type RequireAuthorizationOptions struct {
-	AuthorizationFn AuthorizationFn
-	ErrorResponse   render.Renderer
-}
-
-func RequireAuthorization(options RequireAuthorizationOptions) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, req *http.Request) {
-			if ctx, ok := options.AuthorizationFn(req); ok {
-				next.ServeHTTP(w, req.WithContext(ctx))
-				return
-			}
-			if err := render.Render(w, req, options.ErrorResponse); err != nil {
-				panic(err)
-			}
-		}
-		return http.HandlerFunc(fn)
-	}
-}
 
 // HandleCORS //
 

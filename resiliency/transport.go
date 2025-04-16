@@ -1,4 +1,4 @@
-package transport
+package resiliency
 
 import (
 	"context"

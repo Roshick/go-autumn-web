@@ -1,8 +1,8 @@
-package middleware
+package tracing
 
 import (
-	"github.com/Roshick/go-autumn-slog/pkg/logging"
-	aucontext "github.com/Roshick/go-autumn-web/pkg/context"
+	slogging "github.com/Roshick/go-autumn-slog/pkg/logging"
+	"github.com/Roshick/go-autumn-web/logging"
 	"go.opentelemetry.io/otel/trace"
 	"net/http"
 )
@@ -13,15 +13,15 @@ func AddTracingToContextLogger(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 
-		if logger := logging.FromContext(ctx); logger != nil {
+		if logger := slogging.FromContext(ctx); logger != nil {
 			spanCtx := trace.SpanContextFromContext(ctx)
 			if spanCtx.HasTraceID() {
-				logger = logger.With(LogFieldTraceID, spanCtx.TraceID().String())
+				logger = logger.With(logging.LogFieldTraceID, spanCtx.TraceID().String())
 			}
 			if spanCtx.HasSpanID() {
-				logger = logger.With(LogFieldSpanID, spanCtx.SpanID().String())
+				logger = logger.With(logging.LogFieldSpanID, spanCtx.SpanID().String())
 			}
-			ctx = logging.ContextWithLogger(ctx, logger)
+			ctx = slogging.ContextWithLogger(ctx, logger)
 		}
 
 		next.ServeHTTP(w, req.WithContext(ctx))
@@ -46,7 +46,7 @@ func AddRequestID(options AddRequestIDOptions) func(next http.Handler) http.Hand
 				requestID = options.GeneratorFn()
 			}
 			w.Header().Set(options.Header, requestID)
-			ctx = aucontext.WithRequestID(ctx, requestID)
+			ctx = WithRequestID(ctx, requestID)
 
 			next.ServeHTTP(w, req.WithContext(ctx))
 		}
@@ -60,12 +60,12 @@ func AddRequestIDToContextLogger(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
 
-		if logger := logging.FromContext(ctx); logger != nil {
-			requestID := aucontext.GetRequestID(ctx)
+		if logger := slogging.FromContext(ctx); logger != nil {
+			requestID := GetRequestID(ctx)
 			if requestID != nil && *requestID != "" {
-				logger = logger.With(LogFieldRequestID, *requestID)
+				logger = logger.With(logging.LogFieldRequestID, *requestID)
 			}
-			ctx = logging.ContextWithLogger(ctx, logger)
+			ctx = slogging.ContextWithLogger(ctx, logger)
 		}
 
 		next.ServeHTTP(w, req.WithContext(ctx))

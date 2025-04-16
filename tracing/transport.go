@@ -1,7 +1,6 @@
-package transport
+package tracing
 
 import (
-	aucontext "github.com/Roshick/go-autumn-web/pkg/context"
 	"net/http"
 )
 
@@ -20,7 +19,7 @@ func NewSetRequestIDHeader(rt http.RoundTripper) *SetRequestIDHeader {
 func (t *SetRequestIDHeader) RoundTrip(req *http.Request) (*http.Response, error) {
 	ctx := req.Context()
 
-	requestID := aucontext.GetRequestID(ctx)
+	requestID := GetRequestID(ctx)
 	if requestID != nil && *requestID != "" {
 		req.Header.Set("test", *requestID)
 	}
