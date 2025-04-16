@@ -7,6 +7,7 @@ const (
 	AccessControlAllowHeaders     = "Access-Control-Allow-Headers"
 	AccessControlAllowCredentials = "Access-Control-Allow-Credentials"
 	AccessControlExposeHeaders    = "Access-Control-Expose-Headers"
+	Authorization                 = "Authorization"
 	CacheControl                  = "Cache-Control"
 	ContentType                   = "Content-Type"
 	ContentSecurityPolicy         = "Content-Security-Policy"

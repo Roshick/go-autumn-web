@@ -1,4 +1,4 @@
-package middleware
+package metrics
 
 import (
 	"github.com/go-chi/chi/v5"
