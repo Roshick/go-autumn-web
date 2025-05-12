@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -10,9 +11,10 @@ import (
 )
 
 type TestRequest struct {
-	Method string `json:"method"`
-	URL    string `json:"url"`
-	Body   any    `json:"body,omitempty"`
+	Method string      `json:"method"`
+	URL    string      `json:"url"`
+	Header http.Header `json:"header"`
+	Body   any         `json:"body,omitempty"`
 }
 
 type TestResponse struct {
@@ -22,22 +24,28 @@ type TestResponse struct {
 }
 
 func (r *TestResponse) RequireEqual(t *testing.T, other *TestResponse) *TestResponse {
-	require.Equal(t, r, other)
+	require.Equal(t, other, r)
 	return r
 }
 
 func (r *TestResponse) RequireEqualStatus(t *testing.T, other *TestResponse) *TestResponse {
-	require.Equal(t, r.Status, other.Status)
+	require.Equal(t, other.Status, r.Status)
 	return r
 }
 
 func (r *TestResponse) RequireEqualHeader(t *testing.T, other *TestResponse) *TestResponse {
-	require.Equal(t, r.Header, other.Header)
+	require.Equal(t, other.Header, r.Header)
 	return r
 }
 
 func (r *TestResponse) RequireEqualBody(t *testing.T, other *TestResponse) *TestResponse {
-	require.Equal(t, r.Body, other.Body)
+	require.Equal(t, other.Body, r.Body)
+	return r
+}
+
+func (r *TestResponse) RequireContainsHeader(t *testing.T, key string, value string) *TestResponse {
+	require.Contains(t, r.Header, key)
+	require.Contains(t, r.Header[key], value)
 	return r
 }
 
@@ -77,4 +85,25 @@ func MustReadResponseFromFile(t *testing.T, path string) *TestResponse {
 		t.Fatalf("failed to parse response: %s", err)
 	}
 	return &response
+}
+
+func PerformHTTPRequest(t *testing.T, req TestRequest) *TestResponse {
+	bodyBytes, err := json.Marshal(req.Body)
+	if err != nil {
+		t.Fatalf("failed to marshal request body: %s", err.Error())
+	}
+
+	request, err := http.NewRequest(req.Method, req.URL, bytes.NewReader(bodyBytes))
+	if err != nil {
+		t.Fatalf("failed to create request: %s", err.Error())
+	}
+
+	request.Header = req.Header
+
+	res, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("failed to perform request: %s", err.Error())
+	}
+
+	return MustParseResponse(t, res)
 }
