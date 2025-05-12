@@ -1,4 +1,4 @@
-package middleware
+package validation
 
 import (
 	"context"

@@ -1,8 +1,9 @@
-package middleware
+package resiliency
 
 import (
 	"context"
 	"errors"
+	"github.com/Roshick/go-autumn-web/logging"
 	"github.com/go-chi/render"
 	"net/http"
 	"runtime/debug"
@@ -51,7 +52,7 @@ func RecoverPanic(options RecoverPanicOptions) func(next http.Handler) http.Hand
 				ctx := req.Context()
 				rvr := recover()
 				if rvr != nil && rvr != http.ErrAbortHandler {
-					aulogging.Logger.Ctx(ctx).Error().With(LogFieldStackTrace, string(debug.Stack())).Print("recovered from panic")
+					aulogging.Logger.Ctx(ctx).Error().With(logging.LogFieldStackTrace, string(debug.Stack())).Print("recovered from panic")
 					if err := render.Render(w, req, options.ErrorResponse); err != nil {
 						panic(err)
 					}
