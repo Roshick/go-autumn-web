@@ -3,84 +3,63 @@ package testutils
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
-	"time"
+	"testing"
 )
 
-type Request struct {
-	Method string `json:"method"`
-	URL    string `json:"url"`
-	Body   any    `json:"body,omitempty"`
+type ExpectedInteraction struct {
+	request  TestRequest
+	response *TestResponse
 }
 
-type MockResponse struct {
-	Body   *string
-	Status int
-	Header http.Header
-	Time   time.Time
-}
-
-type ExpectedRequest struct {
-	request  Request
-	response *MockResponse
-}
-
-func (r *ExpectedRequest) WillReturnResponse(response *MockResponse) {
+func (r *ExpectedInteraction) WillReturnResponse(response *TestResponse) {
 	r.response = response
 }
 
-type RequestAsserter struct {
-	expectedRequests []*ExpectedRequest
+type MockInteractionRoundTripper struct {
+	t                    *testing.T
+	expectedInteractions []*ExpectedInteraction
 }
 
-func NewRequestAsserter() *RequestAsserter {
-	return &RequestAsserter{
-		expectedRequests: make([]*ExpectedRequest, 0),
+func NewMockInteractionRoundTripper(t *testing.T) *MockInteractionRoundTripper {
+	return &MockInteractionRoundTripper{
+		t:                    t,
+		expectedInteractions: make([]*ExpectedInteraction, 0),
 	}
 }
 
-func (c *RequestAsserter) RoundTrip(req *http.Request) (*http.Response, error) {
-	var next *ExpectedRequest
-	next, c.expectedRequests = c.expectedRequests[0], c.expectedRequests[1:]
+func (c *MockInteractionRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	require.NotEmpty(c.t, c.expectedInteractions)
 
-	if next.request.Method != "" && next.request.Method != req.Method {
-		return nil, fmt.Errorf("expected method %s, got %s", next.request.Method, req.Method)
+	var next *ExpectedInteraction
+	next, c.expectedInteractions = c.expectedInteractions[0], c.expectedInteractions[1:]
+
+	if next.request.Method != "" {
+		require.Equal(c.t, next.request.Method, req.Method)
 	}
-	if next.request.URL != "" && next.request.URL != req.URL.String() {
-		return nil, fmt.Errorf("expected url %s, got %s", next.request.URL, req.URL.String())
-	}
-	if next.request.Body != nil {
-		var expectedObject any
-		jsonBytes, _ := json.MarshalIndent(next.request.Body, "", "  ")
-		err := json.Unmarshal(jsonBytes, &expectedObject)
-		if err != nil {
-			return nil, err
-		}
-
-		defer req.Body.Close()
-		read, _ := io.ReadAll(req.Body)
-
-		var actualObject any
-		err = json.Unmarshal(read, &actualObject)
-		if err != nil {
-			return nil, err
-		}
-
-		if !assert.ObjectsAreEqual(expectedObject, actualObject) {
-			return nil, fmt.Errorf("expected request body does not match received body")
-		}
+	if next.request.URL != "" {
+		require.Equal(c.t, next.request.URL, req.URL.String())
 	}
 
 	if next.response != nil {
 		mockRes := *next.response
 		var body io.ReadCloser
 		if mockRes.Body != nil {
-			body = io.NopCloser(bytes.NewBuffer([]byte(*mockRes.Body)))
+			var bodyBytes []byte
+			switch mockRes.Header.Get("Content-Type") {
+			case "application/json":
+				var innerErr error
+				if bodyBytes, innerErr = json.Marshal(mockRes.Body); innerErr != nil {
+					c.t.Fatalf("failed to parse response: %s", innerErr)
+				}
+			default:
+				if bodyString, ok := mockRes.Body.(string); ok {
+					bodyBytes = []byte(bodyString)
+				}
+			}
+			body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
 		return &http.Response{
 			StatusCode: mockRes.Status,
@@ -91,29 +70,14 @@ func (c *RequestAsserter) RoundTrip(req *http.Request) (*http.Response, error) {
 	return nil, nil
 }
 
-func (c *RequestAsserter) ExpectRequest(request Request) *ExpectedRequest {
-	e := &ExpectedRequest{
-		request: request,
+func (c *MockInteractionRoundTripper) ExpectRequest(req TestRequest) *ExpectedInteraction {
+	e := &ExpectedInteraction{
+		request: req,
 	}
-	c.expectedRequests = append(c.expectedRequests, e)
+	c.expectedInteractions = append(c.expectedInteractions, e)
 	return e
 }
 
-func (c *RequestAsserter) Reset() {
-	c.expectedRequests = make([]*ExpectedRequest, 0)
-}
-
-func MustReadResponseFromFile(path string) *MockResponse {
-	jsonBytes, err := os.ReadFile(filepath.Join(path))
-	if err != nil {
-		panic(err)
-	}
-
-	parsedResponse := MockResponse{}
-	err = json.Unmarshal(jsonBytes, &parsedResponse)
-	if err != nil {
-		panic(err)
-	}
-
-	return &parsedResponse
+func (c *MockInteractionRoundTripper) Reset() {
+	c.expectedInteractions = make([]*ExpectedInteraction, 0)
 }
