@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -48,12 +49,14 @@ func (c *MockInteractionRoundTripper) RoundTrip(req *http.Request) (*http.Respon
 		var body io.ReadCloser
 		if mockRes.Body != nil {
 			var bodyBytes []byte
-			switch mockRes.Header.Get("Content-Type") {
-			case "application/json":
+			ct := mockRes.Header.Get("Content-Type")
+			switch {
+			case strings.HasPrefix(ct, "application/json"):
 				var innerErr error
 				if bodyBytes, innerErr = json.Marshal(mockRes.Body); innerErr != nil {
 					c.t.Fatalf("failed to parse response: %s", innerErr)
 				}
+				break
 			default:
 				if bodyString, ok := mockRes.Body.(string); ok {
 					bodyBytes = []byte(bodyString)
