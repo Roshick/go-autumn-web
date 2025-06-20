@@ -5,7 +5,14 @@ import (
 	"net/http"
 )
 
-type BasicAuthTransport struct {
+type BasicAuthOptions struct {
+	Username string
+	Password string
+}
+
+var _ http.RoundTripper = (*BasicAuth)(nil)
+
+type BasicAuth struct {
 	http.RoundTripper
 
 	Username string
@@ -14,7 +21,7 @@ type BasicAuthTransport struct {
 
 // RoundTrip implements the http.RoundTripper interface
 // It adds Basic Authentication header to the request before passing it to the underlying RoundTripper
-func (t *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *BasicAuth) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Clone the request to avoid modifying the original
 	reqCopy := req.Clone(req.Context())
 
@@ -26,14 +33,15 @@ func (t *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 	return t.RoundTripper.RoundTrip(reqCopy)
 }
 
-// NewBasicAuthTransport creates a new BasicAuthTransport with the given credentials
-func NewBasicAuthTransport(rt http.RoundTripper, username, password string) *BasicAuthTransport {
+// NewBasicAuth creates a new BasicAuth with the given credentials
+func NewBasicAuth(rt http.RoundTripper, o BasicAuthOptions) *BasicAuth {
 	if rt == nil {
 		rt = http.DefaultTransport
 	}
-	return &BasicAuthTransport{
+
+	return &BasicAuth{
 		RoundTripper: rt,
-		Username:     username,
-		Password:     password,
+		Username:     o.Username,
+		Password:     o.Password,
 	}
 }
