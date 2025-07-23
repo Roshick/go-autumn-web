@@ -10,10 +10,16 @@ import (
 	"strings"
 )
 
-// MetricsRecorder //
+// RequestMetricsTransport //
 
-type MetricsRecorder struct {
-	http.RoundTripper
+type RequestMetricsTransportOptions struct{}
+
+var _ http.RoundTripper = (*RequestMetricsTransport)(nil)
+
+type RequestMetricsTransport struct {
+	base http.RoundTripper
+
+	opts *RequestMetricsTransportOptions
 
 	clientName string
 
@@ -23,17 +29,32 @@ type MetricsRecorder struct {
 	httpClientResBytes  metric.Float64Histogram
 }
 
-func NewMetricsRecorder(rt http.RoundTripper, clientName string) *MetricsRecorder {
-	transport := &MetricsRecorder{
-		RoundTripper: rt,
-		clientName:   clientName,
+func DefaultRequestMetricsTransportOptions() *RequestMetricsTransportOptions {
+	return &RequestMetricsTransportOptions{}
+}
+
+func NewRequestMetricsTransport(rt http.RoundTripper, clientName string, opts *RequestMetricsTransportOptions) *RequestMetricsTransport {
+	if rt == nil {
+		rt = http.DefaultTransport
+	}
+	if opts == nil {
+		opts = DefaultRequestMetricsTransportOptions()
+	}
+
+	transport := &RequestMetricsTransport{
+		base:       rt,
+		opts:       opts,
+		clientName: clientName,
 	}
 	transport.init()
 	return transport
 }
 
-func (t *MetricsRecorder) init() {
-	meterName := fmt.Sprintf("client.%s", strings.ReplaceAll(t.clientName, "-", "_"))
+func (t *RequestMetricsTransport) init() {
+	meterName := "client.default"
+	if t.clientName != "" {
+		meterName = fmt.Sprintf("client.%s", strings.ReplaceAll(t.clientName, "-", "_"))
+	}
 	meter := otel.GetMeterProvider().Meter(meterName)
 
 	t.httpClientCounts, _ = meter.Int64Counter(
@@ -54,10 +75,10 @@ func (t *MetricsRecorder) init() {
 	)
 }
 
-func (t *MetricsRecorder) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *RequestMetricsTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.recordRequest(req.Context(), req.Method, int(req.ContentLength))
 
-	res, err := t.RoundTripper.RoundTrip(req)
+	res, err := t.base.RoundTrip(req)
 	statusCode := 0
 	contentLength := 0
 	if res != nil {
@@ -69,43 +90,33 @@ func (t *MetricsRecorder) RoundTrip(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func (t *MetricsRecorder) recordRequest(ctx context.Context, method string, size int) {
+func (t *RequestMetricsTransport) recordRequest(ctx context.Context, method string, size int) {
+	attributes := []attribute.KeyValue{
+		attribute.String("http.method", method),
+	}
+	if t.clientName != "" {
+		attributes = append(attributes, attribute.String("client.name", t.clientName))
+	}
+
 	if size > 0 {
-		t.httpClientReqBytes.Record(ctx, float64(size),
-			metric.WithAttributes(
-				attribute.String("clientName", t.clientName),
-				attribute.String("method", method),
-			),
-		)
+		t.httpClientReqBytes.Record(ctx, float64(size), metric.WithAttributes(attributes...))
 	}
 }
 
-func (t *MetricsRecorder) recordResponse(ctx context.Context, method string, status int, size int, err error) {
-	statusStr := fmt.Sprintf("%d", status)
+func (t *RequestMetricsTransport) recordResponse(ctx context.Context, method string, status int, size int, err error) {
+	attributes := []attribute.KeyValue{
+		attribute.String("http.method", method),
+		attribute.Int("response.status", status),
+	}
+	if t.clientName != "" {
+		attributes = append(attributes, attribute.String("client.name", t.clientName))
+	}
 
-	t.httpClientCounts.Add(ctx, 1,
-		metric.WithAttributes(
-			attribute.String("clientName", t.clientName),
-			attribute.String("method", method),
-			attribute.String("status", statusStr),
-		),
-	)
+	t.httpClientCounts.Add(ctx, 1, metric.WithAttributes(attributes...))
 	if err != nil {
-		t.httpClientErrCounts.Add(ctx, 1,
-			metric.WithAttributes(
-				attribute.String("clientName", t.clientName),
-				attribute.String("method", method),
-				attribute.String("status", statusStr),
-			),
-		)
+		t.httpClientErrCounts.Add(ctx, 1, metric.WithAttributes(attributes...))
 	}
 	if size > 0 {
-		t.httpClientResBytes.Record(ctx, float64(size),
-			metric.WithAttributes(
-				attribute.String("clientName", t.clientName),
-				attribute.String("method", method),
-				attribute.String("status", statusStr),
-			),
-		)
+		t.httpClientResBytes.Record(ctx, float64(size), metric.WithAttributes(attributes...))
 	}
 }
