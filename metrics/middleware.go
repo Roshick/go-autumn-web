@@ -8,7 +8,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -27,9 +26,9 @@ func NewRequestMetricsMiddleware(opts *RequestMetricsMiddlewareOptions) func(nex
 	}
 
 	meter := otel.GetMeterProvider().Meter("server")
-	httpServerReqSecs, err := meter.Float64Histogram(
-		"http.server.requests.seconds",
-		metric.WithDescription("How long it took to process requests, partitioned by status code, method, and HTTP path."),
+	httpServerReqDuration, err := meter.Float64Histogram(
+		"http.server.request.duration",
+		metric.WithDescription("Duration of HTTP server requests in seconds, partitioned by status code, method, and route."),
 	)
 	if err != nil {
 		aulogging.Logger.NoCtx().Error().WithErr(err).Print("failed to initialize request metrics middleware")
@@ -49,10 +48,10 @@ func NewRequestMetricsMiddleware(opts *RequestMetricsMiddlewareOptions) func(nex
 			routePattern = strings.Replace(routePattern, "/*/", "/", -1)
 
 			duration := float64(time.Since(start).Microseconds()) / 1000000
-			httpServerReqSecs.Record(req.Context(), duration, metric.WithAttributes(
-				attribute.String("method", req.Method),
-				attribute.String("status", strconv.Itoa(ww.Status())),
-				attribute.String("uri", routePattern),
+			httpServerReqDuration.Record(req.Context(), duration, metric.WithAttributes(
+				attribute.String("http.request.method", req.Method),
+				attribute.Int("http.response.status_code", ww.Status()),
+				attribute.String("http.route", routePattern),
 			))
 		}
 		return http.HandlerFunc(fn)
