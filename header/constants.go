@@ -14,4 +14,5 @@ const (
 	ETag                          = "ETag"
 	IfMatch                       = "If-Match"
 	Location                      = "Location"
+	XRequestID                    = "X-Request-ID"
 )

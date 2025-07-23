@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	aulogging "github.com/StephanHCB/go-autumn-logging"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/otel"
@@ -12,14 +13,30 @@ import (
 	"time"
 )
 
-// RecordRequestMetrics //
+// RequestMetricsMiddleware //
 
-func RecordRequestMetrics() func(next http.Handler) http.Handler {
+type RequestMetricsMiddlewareOptions struct{}
+
+func DefaultRequestMetricsMiddlewareOptions() *RequestMetricsMiddlewareOptions {
+	return &RequestMetricsMiddlewareOptions{}
+}
+
+func NewRequestMetricsMiddleware(opts *RequestMetricsMiddlewareOptions) func(next http.Handler) http.Handler {
+	if opts == nil {
+		opts = DefaultRequestMetricsMiddlewareOptions()
+	}
+
 	meter := otel.GetMeterProvider().Meter("server")
-	httpServerReqSecs, _ := meter.Float64Histogram(
+	httpServerReqSecs, err := meter.Float64Histogram(
 		"http.server.requests.seconds",
 		metric.WithDescription("How long it took to process requests, partitioned by status code, method, and HTTP path."),
 	)
+	if err != nil {
+		aulogging.Logger.NoCtx().Error().WithErr(err).Print("failed to initialize request metrics middleware")
+		return func(next http.Handler) http.Handler {
+			return next
+		}
+	}
 
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, req *http.Request) {

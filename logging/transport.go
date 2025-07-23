@@ -7,23 +7,41 @@ import (
 	"time"
 )
 
-// RequestLogger //
+// RequestLoggerTransport //
 
-type RequestLogger struct {
-	http.RoundTripper
+type RequestLoggerTransportOptions struct {
 }
 
-func NewRequestLogger(rt http.RoundTripper) *RequestLogger {
-	return &RequestLogger{
-		RoundTripper: rt,
+var _ http.RoundTripper = (*RequestLoggerTransport)(nil)
+
+type RequestLoggerTransport struct {
+	base http.RoundTripper
+	opts *RequestLoggerTransportOptions
+}
+
+func DefaultRequestLoggerTransportOptions() *RequestLoggerTransportOptions {
+	return &RequestLoggerTransportOptions{}
+}
+
+func NewRequestLoggerTransport(rt http.RoundTripper, opts *RequestLoggerTransportOptions) *RequestLoggerTransport {
+	if rt == nil {
+		rt = http.DefaultTransport
+	}
+	if opts == nil {
+		opts = DefaultRequestLoggerTransportOptions()
+	}
+
+	return &RequestLoggerTransport{
+		base: rt,
+		opts: opts,
 	}
 }
 
-func (t *RequestLogger) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *RequestLoggerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.logRequest(req.Context(), req.Method, req.URL.String())
 
 	startTime := time.Now()
-	res, err := t.RoundTripper.RoundTrip(req)
+	res, err := t.base.RoundTrip(req)
 	statusCode := 0
 	if res != nil {
 		statusCode = res.StatusCode
@@ -33,11 +51,11 @@ func (t *RequestLogger) RoundTrip(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
-func (t *RequestLogger) logRequest(ctx context.Context, method string, requestUrl string) {
+func (t *RequestLoggerTransport) logRequest(ctx context.Context, method string, requestUrl string) {
 	aulogging.Logger.Ctx(ctx).Info().Printf("upstream call %s %s", method, requestUrl)
 }
 
-func (t *RequestLogger) logResponse(ctx context.Context, method string, requestUrl string, responseStatusCode int, err error, startTime time.Time) {
+func (t *RequestLoggerTransport) logResponse(ctx context.Context, method string, requestUrl string, responseStatusCode int, err error, startTime time.Time) {
 	reqDuration := time.Now().Sub(startTime).Milliseconds()
 	if err != nil {
 		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("upstream call %s %s -> %d FAILED (%d ms)", method, requestUrl, responseStatusCode, reqDuration)

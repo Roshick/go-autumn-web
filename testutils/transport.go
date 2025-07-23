@@ -74,30 +74,43 @@ func (r *ExpectedInteraction) matches(req *http.Request) bool {
 	return true
 }
 
-type MockInteractionRoundTripper struct {
-	t                    *testing.T
+type MockInteractionTransportOptions struct {
+	Algorithm MatchingAlgorithm
+}
+
+type MockInteractionTransport struct {
+	t    *testing.T
+	opts *MockInteractionTransportOptions
+
 	expectedInteractions []*ExpectedInteraction
-	algorithm            MatchingAlgorithm
 	m                    sync.RWMutex
 }
 
-type MockInteractionRoundTripperOptions struct {
-	Algorithm MatchingAlgorithm // defaults to Exact
+var _ http.RoundTripper = (*MockInteractionTransport)(nil)
+
+func DefaultMockInteractionTransportOptions() *MockInteractionTransportOptions {
+	return &MockInteractionTransportOptions{
+		Algorithm: Exact,
+	}
 }
 
-func NewMockInteractionRoundTripper(t *testing.T, options MockInteractionRoundTripperOptions) *MockInteractionRoundTripper {
-	return &MockInteractionRoundTripper{
+func NewMockInteractionRoundTripper(t *testing.T, opts *MockInteractionTransportOptions) *MockInteractionTransport {
+	if opts == nil {
+		opts = DefaultMockInteractionTransportOptions()
+	}
+
+	return &MockInteractionTransport{
 		t:                    t,
+		opts:                 opts, // Add the missing opts field
 		expectedInteractions: make([]*ExpectedInteraction, 0),
-		algorithm:            options.Algorithm,
 		m:                    sync.RWMutex{},
 	}
 }
 
-func (c *MockInteractionRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+func (c *MockInteractionTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var next *ExpectedInteraction
 
-	switch c.algorithm {
+	switch c.opts.Algorithm {
 	case Exact:
 		c.m.Lock()
 		defer c.m.Unlock()
@@ -107,7 +120,7 @@ func (c *MockInteractionRoundTripper) RoundTrip(req *http.Request) (*http.Respon
 		defer c.m.RUnlock()
 		next = c.selectFirstMatch(req)
 	default:
-		c.t.Fatalf("unknown matching algorithm: %v", c.algorithm)
+		c.t.Fatalf("unknown matching algorithm: %v", c.opts.Algorithm)
 	}
 
 	require.NotNil(c.t, next, fmt.Sprintf("no matching expected interaction found for %s to %s", req.Method, req.URL.String()))
@@ -158,7 +171,7 @@ func (c *MockInteractionRoundTripper) RoundTrip(req *http.Request) (*http.Respon
 }
 
 // selectExact returns the first unused interaction
-func (c *MockInteractionRoundTripper) selectExact() *ExpectedInteraction {
+func (c *MockInteractionTransport) selectExact() *ExpectedInteraction {
 	if len(c.expectedInteractions) == 0 {
 		return nil
 	}
@@ -168,7 +181,7 @@ func (c *MockInteractionRoundTripper) selectExact() *ExpectedInteraction {
 }
 
 // selectFirstMatch returns the first interaction that matches the request
-func (c *MockInteractionRoundTripper) selectFirstMatch(req *http.Request) *ExpectedInteraction {
+func (c *MockInteractionTransport) selectFirstMatch(req *http.Request) *ExpectedInteraction {
 	for _, interaction := range c.expectedInteractions {
 		if interaction.matches(req) {
 			return interaction
@@ -177,7 +190,7 @@ func (c *MockInteractionRoundTripper) selectFirstMatch(req *http.Request) *Expec
 	return nil
 }
 
-func (c *MockInteractionRoundTripper) ExpectRequest(req TestRequest) *ExpectedInteraction {
+func (c *MockInteractionTransport) ExpectRequest(req TestRequest) *ExpectedInteraction {
 	c.m.Lock()
 	defer c.m.Unlock()
 	e := &ExpectedInteraction{
@@ -188,7 +201,7 @@ func (c *MockInteractionRoundTripper) ExpectRequest(req TestRequest) *ExpectedIn
 	return e
 }
 
-func (c *MockInteractionRoundTripper) Reset() {
+func (c *MockInteractionTransport) Reset() {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.expectedInteractions = make([]*ExpectedInteraction, 0)

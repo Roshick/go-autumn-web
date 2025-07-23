@@ -7,19 +7,15 @@ import (
 
 type RequestID string
 
-func (c RequestID) String() string {
-	return string(c)
-}
-
-func GetRequestID(ctx context.Context) *string {
+func RequestIDFromContext(ctx context.Context) *string {
 	requestID := contextutils.GetValue[RequestID](ctx)
 	if requestID != nil {
-		requestIDString := (*requestID).String()
+		requestIDString := string(*requestID) // Direct string conversion instead of String() method
 		return &requestIDString
 	}
 	return nil
 }
 
-func WithRequestID(ctx context.Context, requestID string) context.Context {
-	return context.WithValue(ctx, RequestID(requestID), requestID)
+func ContextWithRequestID(ctx context.Context, requestID string) context.Context {
+	return contextutils.WithValue(ctx, RequestID(requestID))
 }
