@@ -256,47 +256,62 @@ func TestRequestMetricsTransport_RecordMethods(t *testing.T) {
 	t.Run("recordRequest with positive size", func(t *testing.T) {
 		transport := NewRequestMetricsTransport(nil, "record-test", nil)
 		ctx := context.Background()
+		req := httptest.NewRequest(http.MethodPost, "https://api.localhost/test", strings.NewReader("test body"))
+		req.ContentLength = 9
 
 		// This test verifies the method doesn't panic
 		assert.NotPanics(t, func() {
-			transport.recordRequest(ctx, "POST", 100)
+			transport.recordRequest(ctx, req)
 		})
 	})
 
 	t.Run("recordRequest with zero size", func(t *testing.T) {
 		transport := NewRequestMetricsTransport(nil, "record-test", nil)
 		ctx := context.Background()
+		req := httptest.NewRequest(http.MethodGet, "https://api.localhost/test", nil)
+		req.ContentLength = 0
 
 		assert.NotPanics(t, func() {
-			transport.recordRequest(ctx, "GET", 0)
+			transport.recordRequest(ctx, req)
 		})
 	})
 
 	t.Run("recordResponse with success", func(t *testing.T) {
 		transport := NewRequestMetricsTransport(nil, "record-test", nil)
 		ctx := context.Background()
+		req := httptest.NewRequest(http.MethodGet, "https://api.localhost/test", nil)
+		resp := &http.Response{
+			StatusCode:    200,
+			ContentLength: 50,
+		}
 
 		assert.NotPanics(t, func() {
-			transport.recordResponse(ctx, "GET", 200, 50, nil)
+			transport.recordResponse(ctx, req, resp, nil)
 		})
 	})
 
 	t.Run("recordResponse with error", func(t *testing.T) {
 		transport := NewRequestMetricsTransport(nil, "record-test", nil)
 		ctx := context.Background()
+		req := httptest.NewRequest(http.MethodPost, "https://api.localhost/test", nil)
 		err := errors.New("test error")
 
 		assert.NotPanics(t, func() {
-			transport.recordResponse(ctx, "POST", 500, 0, err)
+			transport.recordResponse(ctx, req, nil, err)
 		})
 	})
 
 	t.Run("recordResponse without client name", func(t *testing.T) {
 		transport := NewRequestMetricsTransport(nil, "", nil)
 		ctx := context.Background()
+		req := httptest.NewRequest(http.MethodPut, "https://api.localhost/test", nil)
+		resp := &http.Response{
+			StatusCode:    201,
+			ContentLength: 75,
+		}
 
 		assert.NotPanics(t, func() {
-			transport.recordResponse(ctx, "PUT", 201, 75, nil)
+			transport.recordResponse(ctx, req, resp, nil)
 		})
 	})
 }
