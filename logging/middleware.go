@@ -115,7 +115,7 @@ func NewRequestLoggerMiddleware(opts *RequestLoggerMiddlewareOptions) func(next 
 				subCtx := logging.ContextWithLogger(ctx, logger)
 
 				if ww.Status() >= http.StatusInternalServerError {
-					aulogging.Logger.Ctx(subCtx).Warn().Printf("upstream call %s %s -> %d FAILED (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
+					aulogging.Logger.Ctx(subCtx).Warn().Printf("downstream call %s %s -> %d FAILED (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
 				} else {
 					aulogging.Logger.Ctx(subCtx).Info().Printf("downstream call %s %s -> %d OK (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
 				}
