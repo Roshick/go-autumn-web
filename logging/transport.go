@@ -58,8 +58,8 @@ func (t *RequestLoggerTransport) logRequest(ctx context.Context, method string, 
 func (t *RequestLoggerTransport) logResponse(ctx context.Context, method string, requestUrl string, responseStatusCode int, err error, startTime time.Time) {
 	reqDuration := time.Now().Sub(startTime).Milliseconds()
 	if err != nil {
-		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("upstream call %s %s -> %d FAILED (%d ms)", method, requestUrl, responseStatusCode, reqDuration)
+		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("request %s %s -> %d FAILED (%d ms)", method, requestUrl, responseStatusCode, reqDuration)
 		return
 	}
-	aulogging.Logger.Ctx(ctx).Info().Printf("upstream call %s %s -> %d OK (%d ms)", method, requestUrl, responseStatusCode, reqDuration)
+	aulogging.Logger.Ctx(ctx).Info().Printf("request %s %s -> %d OK (%d ms)", method, requestUrl, responseStatusCode, reqDuration)
 }
