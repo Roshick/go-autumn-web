@@ -102,19 +102,22 @@ func NewRequestLoggerMiddleware(opts *RequestLoggerMiddlewareOptions) func(next 
 
 			ctx := req.Context()
 			if logger := logging.FromContext(ctx); logger != nil {
+				duration := time.Since(t1).Microseconds()
+
 				logger = logger.With(
 					LogFieldRequestMethod, req.Method,
 					LogFieldResponseStatus, ww.Status(),
 					LogFieldURLPath, req.URL.Path,
 					LogFieldUserAgent, req.UserAgent(),
 					LogFieldLogger, "request.incoming",
-					LogFieldEventDuration, time.Since(t1).Microseconds(),
+					LogFieldEventDuration, duration,
 				)
 				subCtx := logging.ContextWithLogger(ctx, logger)
+
 				if ww.Status() >= http.StatusInternalServerError {
-					aulogging.Logger.Ctx(subCtx).Error().Print("request")
+					aulogging.Logger.Ctx(subCtx).Warn().Printf("upstream call %s %s -> %d FAILED (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
 				} else {
-					aulogging.Logger.Ctx(subCtx).Info().Print("request")
+					aulogging.Logger.Ctx(subCtx).Info().Printf("downstream call %s %s -> %d OK (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
 				}
 			}
 		}
