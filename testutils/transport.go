@@ -94,7 +94,7 @@ func DefaultMockInteractionTransportOptions() *MockInteractionTransportOptions {
 	}
 }
 
-func NewMockInteractionRoundTripper(t *testing.T, opts *MockInteractionTransportOptions) *MockInteractionTransport {
+func NewMockInteractionTransport(t *testing.T, opts *MockInteractionTransportOptions) *MockInteractionTransport {
 	if opts == nil {
 		opts = DefaultMockInteractionTransportOptions()
 	}

@@ -22,7 +22,7 @@ func TestNewMockInteractionRoundTripper(t *testing.T) {
 			Algorithm: FirstMatch,
 		}
 
-		transport := NewMockInteractionRoundTripper(t, opts)
+		transport := NewMockInteractionTransport(t, opts)
 
 		require.NotNil(t, transport)
 		assert.Equal(t, t, transport.t)
@@ -32,7 +32,7 @@ func TestNewMockInteractionRoundTripper(t *testing.T) {
 	})
 
 	t.Run("with nil options uses default", func(t *testing.T) {
-		transport := NewMockInteractionRoundTripper(t, nil)
+		transport := NewMockInteractionTransport(t, nil)
 
 		require.NotNil(t, transport)
 		assert.NotNil(t, transport.opts)
@@ -41,7 +41,7 @@ func TestNewMockInteractionRoundTripper(t *testing.T) {
 }
 
 func TestMockInteractionTransport_ExpectRequest(t *testing.T) {
-	transport := NewMockInteractionRoundTripper(t, nil)
+	transport := NewMockInteractionTransport(t, nil)
 
 	testReq := TestRequest{
 		Method: "GET",
@@ -57,7 +57,7 @@ func TestMockInteractionTransport_ExpectRequest(t *testing.T) {
 }
 
 func TestMockInteractionTransport_Reset(t *testing.T) {
-	transport := NewMockInteractionRoundTripper(t, nil)
+	transport := NewMockInteractionTransport(t, nil)
 
 	// Add some interactions
 	transport.ExpectRequest(TestRequest{Method: "GET", URL: "https://api.localhost/1"})
@@ -71,7 +71,7 @@ func TestMockInteractionTransport_Reset(t *testing.T) {
 }
 
 func TestExpectedInteraction_WillReturnResponse(t *testing.T) {
-	transport := NewMockInteractionRoundTripper(t, nil)
+	transport := NewMockInteractionTransport(t, nil)
 
 	testReq := TestRequest{Method: "GET", URL: "https://api.localhost/test"}
 	testResp := &TestResponse{
@@ -87,7 +87,7 @@ func TestExpectedInteraction_WillReturnResponse(t *testing.T) {
 }
 
 func TestExpectedInteraction_IgnoreQueryParams(t *testing.T) {
-	transport := NewMockInteractionRoundTripper(t, nil)
+	transport := NewMockInteractionTransport(t, nil)
 
 	testReq := TestRequest{Method: "GET", URL: "https://api.localhost/test"}
 	interaction := transport.ExpectRequest(testReq)
@@ -244,7 +244,7 @@ func TestExpectedInteraction_matches(t *testing.T) {
 
 func TestMockInteractionTransport_RoundTrip_ExactAlgorithm(t *testing.T) {
 	t.Run("matches requests in exact order", func(t *testing.T) {
-		transport := NewMockInteractionRoundTripper(t, &MockInteractionTransportOptions{
+		transport := NewMockInteractionTransport(t, &MockInteractionTransportOptions{
 			Algorithm: Exact,
 		})
 
@@ -270,7 +270,7 @@ func TestMockInteractionTransport_RoundTrip_ExactAlgorithm(t *testing.T) {
 	})
 
 	t.Run("consumes interactions in exact order", func(t *testing.T) {
-		transport := NewMockInteractionRoundTripper(t, &MockInteractionTransportOptions{
+		transport := NewMockInteractionTransport(t, &MockInteractionTransportOptions{
 			Algorithm: Exact,
 		})
 
@@ -289,7 +289,7 @@ func TestMockInteractionTransport_RoundTrip_ExactAlgorithm(t *testing.T) {
 
 func TestMockInteractionTransport_RoundTrip_FirstMatchAlgorithm(t *testing.T) {
 	t.Run("matches first matching interaction", func(t *testing.T) {
-		transport := NewMockInteractionRoundTripper(t, &MockInteractionTransportOptions{
+		transport := NewMockInteractionTransport(t, &MockInteractionTransportOptions{
 			Algorithm: FirstMatch,
 		})
 
@@ -308,7 +308,7 @@ func TestMockInteractionTransport_RoundTrip_FirstMatchAlgorithm(t *testing.T) {
 	})
 
 	t.Run("keeps interactions available for reuse", func(t *testing.T) {
-		transport := NewMockInteractionRoundTripper(t, &MockInteractionTransportOptions{
+		transport := NewMockInteractionTransport(t, &MockInteractionTransportOptions{
 			Algorithm: FirstMatch,
 		})
 
@@ -326,7 +326,7 @@ func TestMockInteractionTransport_RoundTrip_FirstMatchAlgorithm(t *testing.T) {
 
 func TestMockInteractionTransport_RoundTrip_ResponseHandling(t *testing.T) {
 	t.Run("returns JSON response body", func(t *testing.T) {
-		transport := NewMockInteractionRoundTripper(t, nil)
+		transport := NewMockInteractionTransport(t, nil)
 
 		responseBody := map[string]interface{}{
 			"id":   123,
@@ -354,7 +354,7 @@ func TestMockInteractionTransport_RoundTrip_ResponseHandling(t *testing.T) {
 	})
 
 	t.Run("returns string response body", func(t *testing.T) {
-		transport := NewMockInteractionRoundTripper(t, nil)
+		transport := NewMockInteractionTransport(t, nil)
 
 		transport.ExpectRequest(TestRequest{Method: "GET", URL: "https://api.localhost/text"}).
 			WillReturnResponse(&TestResponse{
@@ -373,7 +373,7 @@ func TestMockInteractionTransport_RoundTrip_ResponseHandling(t *testing.T) {
 	})
 
 	t.Run("returns nil response when no response configured", func(t *testing.T) {
-		transport := NewMockInteractionRoundTripper(t, nil)
+		transport := NewMockInteractionTransport(t, nil)
 
 		transport.ExpectRequest(TestRequest{Method: "GET", URL: "https://api.localhost/nil"})
 
@@ -386,7 +386,7 @@ func TestMockInteractionTransport_RoundTrip_ResponseHandling(t *testing.T) {
 }
 
 func TestMockInteractionTransport_ImplementsRoundTripper(t *testing.T) {
-	transport := NewMockInteractionRoundTripper(t, nil)
+	transport := NewMockInteractionTransport(t, nil)
 
 	// Verify it implements http.RoundTripper interface
 	var _ http.RoundTripper = transport

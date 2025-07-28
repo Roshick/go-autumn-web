@@ -116,9 +116,9 @@ func NewRequestLoggerMiddleware(opts *RequestLoggerMiddlewareOptions) func(next 
 
 				if ww.Status() >= http.StatusInternalServerError {
 					aulogging.Logger.Ctx(subCtx).Warn().Printf("response %s %s -> %d FAILED (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
-				} else {
-					aulogging.Logger.Ctx(subCtx).Info().Printf("response %s %s -> %d OK (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
+					return
 				}
+				aulogging.Logger.Ctx(subCtx).Info().Printf("response %s %s -> %d OK (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
 			}
 		}
 		return http.HandlerFunc(fn)
