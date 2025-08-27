@@ -7,7 +7,7 @@ toolchain go1.24.5
 require (
 	github.com/Roshick/go-autumn-slog v0.3.1
 	github.com/StephanHCB/go-autumn-logging v0.4.0
-	github.com/go-chi/chi/v5 v5.2.2
+	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-chi/render v1.0.3
 	github.com/lestrrat-go/jwx/v3 v3.0.10
 	github.com/sony/gobreaker/v2 v2.1.0
