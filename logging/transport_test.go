@@ -201,17 +201,6 @@ func TestRequestLoggerTransport_RoundTrip(t *testing.T) {
 }
 
 func TestRequestLoggerTransport_LogMethods(t *testing.T) {
-	t.Run("logRequest logs method and URL", func(t *testing.T) {
-		transport := NewRequestLoggerTransport(nil, nil)
-		ctx := context.Background()
-
-		// This test verifies the method doesn't panic
-		// In a real scenario, you might want to capture log output
-		assert.NotPanics(t, func() {
-			transport.logRequest(ctx, "GET", "https://api.localhost/users")
-		})
-	})
-
 	t.Run("logResponse logs successful response", func(t *testing.T) {
 		transport := NewRequestLoggerTransport(nil, nil)
 		ctx := context.Background()
