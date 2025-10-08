@@ -2,11 +2,12 @@ package logging
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/Roshick/go-autumn-slog/pkg/logging"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
 	"github.com/go-chi/chi/v5/middleware"
-	"net/http"
-	"time"
 )
 
 // ContextLoggerMiddleware //
@@ -82,10 +83,15 @@ func NewContextCancellationLoggerMiddleware(opts *ContextCancellationLoggerMiddl
 // RequestLoggerMiddleware //
 
 type RequestLoggerMiddlewareOptions struct {
+	// WarningStatusCodeThreshold defines the status code boundary above which
+	// responses are logged as warnings instead of info. Defaults to 500 (5xx errors).
+	WarningStatusCodeThreshold int
 }
 
 func DefaultRequestLoggerMiddlewareOptions() *RequestLoggerMiddlewareOptions {
-	return &RequestLoggerMiddlewareOptions{}
+	return &RequestLoggerMiddlewareOptions{
+		WarningStatusCodeThreshold: 500,
+	}
 }
 
 func NewRequestLoggerMiddleware(opts *RequestLoggerMiddlewareOptions) func(next http.Handler) http.Handler {
@@ -102,7 +108,7 @@ func NewRequestLoggerMiddleware(opts *RequestLoggerMiddlewareOptions) func(next 
 
 			ctx := req.Context()
 			if logger := logging.FromContext(ctx); logger != nil {
-				duration := time.Since(t1).Microseconds()
+				duration := time.Since(t1).Milliseconds()
 
 				logger = logger.With(
 					LogFieldRequestMethod, req.Method,
@@ -114,11 +120,11 @@ func NewRequestLoggerMiddleware(opts *RequestLoggerMiddlewareOptions) func(next 
 				)
 				subCtx := logging.ContextWithLogger(ctx, logger)
 
-				if ww.Status() >= http.StatusInternalServerError {
-					aulogging.Logger.Ctx(subCtx).Warn().Printf("response %s %s -> %d FAILED (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
+				if ww.Status() >= opts.WarningStatusCodeThreshold {
+					aulogging.Logger.Ctx(subCtx).Warn().Printf("response %s %s -> %d (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
 					return
 				}
-				aulogging.Logger.Ctx(subCtx).Info().Printf("response %s %s -> %d OK (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
+				aulogging.Logger.Ctx(subCtx).Info().Printf("response %s %s -> %d (%d ms)", req.Method, req.URL.Path, ww.Status(), duration)
 			}
 		}
 		return http.HandlerFunc(fn)
