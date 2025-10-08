@@ -57,14 +57,9 @@ func (t *RequestLoggerTransport) RoundTrip(req *http.Request) (*http.Response, e
 
 func (t *RequestLoggerTransport) logResponse(ctx context.Context, method string, requestUrl string, responseStatusCode int, err error, startTime time.Time) {
 	reqDuration := time.Now().Sub(startTime).Milliseconds()
-	if err != nil {
+	if err != nil || responseStatusCode >= t.opts.WarningStatusCodeThreshold {
 		aulogging.Logger.Ctx(ctx).Warn().WithErr(err).Printf("request %s %s -> %d (%d ms)", method, requestUrl, responseStatusCode, reqDuration)
 		return
 	}
-
-	if responseStatusCode >= t.opts.WarningStatusCodeThreshold {
-		aulogging.Logger.Ctx(ctx).Warn().Printf("request %s %s -> %d (%d ms)", method, requestUrl, responseStatusCode, reqDuration)
-	} else {
-		aulogging.Logger.Ctx(ctx).Info().Printf("request %s %s -> %d (%d ms)", method, requestUrl, responseStatusCode, reqDuration)
-	}
+	aulogging.Logger.Ctx(ctx).Info().Printf("request %s %s -> %d (%d ms)", method, requestUrl, responseStatusCode, reqDuration)
 }
