@@ -2,7 +2,7 @@ module github.com/Roshick/go-autumn-web
 
 go 1.25.0
 
-toolchain go1.25.7
+toolchain go1.26.1
 
 require (
 	github.com/Roshick/go-autumn-slog v0.3.2
