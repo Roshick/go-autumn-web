@@ -1,15 +1,16 @@
 package resiliency
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDefaultRecoveryMiddlewareOptions(t *testing.T) {
-	opts := DefaultRecoveryMiddlewareOptions()
+func TestDefaultPanicRecoveryMiddlewareOptions(t *testing.T) {
+	opts := DefaultPanicRecoveryMiddlewareOptions()
 
 	require.NotNil(t, opts)
 	assert.NotNil(t, opts.ErrorResponse)
@@ -22,7 +23,7 @@ func TestNewPanicRecoveryMiddleware(t *testing.T) {
 	})
 
 	t.Run("normal request without panic", func(t *testing.T) {
-		opts := DefaultRecoveryMiddlewareOptions()
+		opts := DefaultPanicRecoveryMiddlewareOptions()
 		middleware := NewPanicRecoveryMiddleware(opts)
 
 		handlerCalled := false
@@ -41,7 +42,7 @@ func TestNewPanicRecoveryMiddleware(t *testing.T) {
 	})
 
 	t.Run("panic recovery", func(t *testing.T) {
-		opts := DefaultRecoveryMiddlewareOptions()
+		opts := DefaultPanicRecoveryMiddlewareOptions()
 		middleware := NewPanicRecoveryMiddleware(opts)
 
 		handlerCalled := false
@@ -63,7 +64,7 @@ func TestNewPanicRecoveryMiddleware(t *testing.T) {
 	})
 
 	t.Run("http.ErrAbortHandler is not recovered", func(t *testing.T) {
-		opts := DefaultRecoveryMiddlewareOptions()
+		opts := DefaultPanicRecoveryMiddlewareOptions()
 		middleware := NewPanicRecoveryMiddleware(opts)
 
 		handlerCalled := false

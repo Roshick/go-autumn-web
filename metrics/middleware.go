@@ -1,15 +1,16 @@
 package metrics
 
 import (
+	"net/http"
+	"strings"
+	"time"
+
 	aulogging "github.com/StephanHCB/go-autumn-logging"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"net/http"
-	"strings"
-	"time"
 )
 
 // RequestMetricsMiddleware //

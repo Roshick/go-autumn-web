@@ -1,8 +1,9 @@
 package errors
 
 import (
-	"github.com/go-chi/render"
 	"net/http"
+
+	"github.com/go-chi/render"
 )
 
 // Base error response structure

@@ -3,12 +3,13 @@ package auth
 import (
 	"crypto/sha256"
 	"crypto/subtle"
+	"net/http"
+	"strings"
+
 	weberrors "github.com/Roshick/go-autumn-web/errors"
 	"github.com/Roshick/go-autumn-web/header"
 	"github.com/go-chi/render"
 	"github.com/lestrrat-go/jwx/v3/jwt"
-	"net/http"
-	"strings"
 )
 
 // AuthorizationMiddleware //

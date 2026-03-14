@@ -2,9 +2,10 @@ package security
 
 import (
 	"fmt"
-	"github.com/Roshick/go-autumn-web/header"
 	"net/http"
 	"strings"
+
+	"github.com/Roshick/go-autumn-web/header"
 )
 
 // CORSMiddleware //

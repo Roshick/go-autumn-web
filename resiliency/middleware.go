@@ -1,29 +1,30 @@
 package resiliency
 
 import (
+	"net/http"
+	"runtime/debug"
+
 	weberrors "github.com/Roshick/go-autumn-web/errors"
 	"github.com/Roshick/go-autumn-web/logging"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
 	"github.com/go-chi/render"
-	"net/http"
-	"runtime/debug"
 )
 
 // PanicRecoveryMiddleware //
 
-type RecoveryMiddlewareOptions struct {
+type PanicRecoveryMiddlewareOptions struct {
 	ErrorResponse render.Renderer
 }
 
-func DefaultRecoveryMiddlewareOptions() *RecoveryMiddlewareOptions {
-	return &RecoveryMiddlewareOptions{
+func DefaultPanicRecoveryMiddlewareOptions() *PanicRecoveryMiddlewareOptions {
+	return &PanicRecoveryMiddlewareOptions{
 		ErrorResponse: weberrors.NewPanicRecoveryResponse(),
 	}
 }
 
-func NewPanicRecoveryMiddleware(opts *RecoveryMiddlewareOptions) func(next http.Handler) http.Handler {
+func NewPanicRecoveryMiddleware(opts *PanicRecoveryMiddlewareOptions) func(next http.Handler) http.Handler {
 	if opts == nil {
-		opts = DefaultRecoveryMiddlewareOptions()
+		opts = DefaultPanicRecoveryMiddlewareOptions()
 	}
 
 	return func(next http.Handler) http.Handler {

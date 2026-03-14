@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Roshick/go-autumn-slog/pkg/logging"
+	"github.com/Roshick/go-autumn-slog"
 	aulogging "github.com/StephanHCB/go-autumn-logging"
 	"github.com/go-chi/chi/v5/middleware"
 )
