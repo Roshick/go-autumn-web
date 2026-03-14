@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+
 	"github.com/Roshick/go-autumn-web/contextutils"
 	"github.com/lestrrat-go/jwx/v3/jwt"
 )

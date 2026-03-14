@@ -3,9 +3,10 @@ package validation
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+
 	weberrors "github.com/Roshick/go-autumn-web/errors"
 	"github.com/go-chi/render"
-	"net/http"
 )
 
 // ContextRequestBodyMiddleware //

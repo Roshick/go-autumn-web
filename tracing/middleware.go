@@ -3,13 +3,14 @@ package tracing
 import (
 	"crypto/rand"
 	"fmt"
-	slogging "github.com/Roshick/go-autumn-slog/pkg/logging"
-	"github.com/Roshick/go-autumn-web/header"
-	"github.com/Roshick/go-autumn-web/logging"
-	"go.opentelemetry.io/otel/trace"
 	mathrand "math/rand/v2"
 	"net/http"
 	"time"
+
+	slogging "github.com/Roshick/go-autumn-slog"
+	"github.com/Roshick/go-autumn-web/header"
+	"github.com/Roshick/go-autumn-web/logging"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // TracingLoggerMiddleware //

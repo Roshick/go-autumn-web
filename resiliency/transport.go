@@ -1,9 +1,10 @@
 package resiliency
 
 import (
-	"github.com/sony/gobreaker/v2"
 	"net/http"
 	"time"
+
+	"github.com/sony/gobreaker/v2"
 )
 
 type CircuitBreakerTransportOptions struct {

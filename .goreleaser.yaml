@@ -1,0 +1,6 @@
+project_name: go-autumn-web
+
+release:
+  github:
+    owner: Roshick
+    name: go-autumn-web

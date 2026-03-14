@@ -3,11 +3,12 @@ package testutils
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type TestRequest struct {

@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+
 	"github.com/Roshick/go-autumn-web/contextutils"
 )
 
