@@ -1,2 +1,5 @@
 [tools]
 go = "1.26.4"
+
+[env]
+GOEXPERIMENT = "jsonv2"

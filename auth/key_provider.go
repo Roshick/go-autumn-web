@@ -4,33 +4,36 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/lestrrat-go/jwx/v3/jwk"
-	"github.com/lestrrat-go/jwx/v3/jws"
+	"github.com/jwx-go/jwkfetch/v4"
+	"github.com/lestrrat-go/jwx/v4/jwk"
+	"github.com/lestrrat-go/jwx/v4/jws"
 )
 
-func NewRemoteKeySetProvider(keySetURL string, f jwk.Fetcher, options ...jwk.FetchOption) jws.KeyProvider {
-	options = append(append([]jwk.FetchOption(nil), jwk.WithFetchWhitelist(jwk.NewBlockAllWhitelist())), options...)
-
-	whitelist := jwk.NewMapWhitelist()
-	whitelist.Add(keySetURL)
-	options = append(options, jwk.WithFetchWhitelist(whitelist))
+func NewRemoteKeySetProvider(keySetURL string, f jwk.Fetcher) jws.KeyProvider {
+	if f == nil {
+		f = newDefaultFetcher(keySetURL)
+	}
 
 	return &RemoteKeySetProvider{
 		keySetURL: keySetURL,
 		fetcher:   f,
-		options:   options,
 	}
+}
+
+func newDefaultFetcher(keySetURL string) jwk.Fetcher {
+	whitelist := jwkfetch.NewMapWhitelist().Add(keySetURL)
+	return jwkfetch.NewClient(jwkfetch.WithWhitelist(whitelist))
 }
 
 type RemoteKeySetProvider struct {
 	keySetURL string
 	fetcher   jwk.Fetcher
-	options   []jwk.FetchOption
 }
 
 func (p RemoteKeySetProvider) FetchKeys(ctx context.Context, sink jws.KeySink, sig *jws.Signature, _ *jws.Message) error {
-	if p.fetcher == nil {
-		p.fetcher = jwk.FetchFunc(jwk.Fetch)
+	fetcher := p.fetcher
+	if fetcher == nil {
+		fetcher = newDefaultFetcher(p.keySetURL)
 	}
 
 	kid, ok := sig.ProtectedHeaders().KeyID()
@@ -38,7 +41,7 @@ func (p RemoteKeySetProvider) FetchKeys(ctx context.Context, sink jws.KeySink, s
 		return fmt.Errorf(`use of remote key set requires that the payload contains a "kid" field in the protected header`)
 	}
 
-	set, err := p.fetcher.Fetch(ctx, p.keySetURL, p.options...)
+	set, err := fetcher.Fetch(ctx, p.keySetURL)
 	if err != nil {
 		return fmt.Errorf(`failed to fetch %q: %w`, p.keySetURL, err)
 	}
