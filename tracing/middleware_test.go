@@ -1,12 +1,15 @@
 package tracing
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	slogging "github.com/Roshick/go-autumn-slog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
@@ -80,6 +83,38 @@ func TestNewTracingLoggerMiddleware(t *testing.T) {
 		assert.True(t, handlerCalled)
 		assert.NotNil(t, receivedContext)
 		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("middleware execution with span context and context logger", func(t *testing.T) {
+		middleware := NewTracingLoggerMiddleware(nil)
+
+		traceID, err := trace.TraceIDFromHex("12345678901234567890123456789012")
+		require.NoError(t, err)
+		spanID, err := trace.SpanIDFromHex("1234567890123456")
+		require.NoError(t, err)
+		spanContext := trace.NewSpanContext(trace.SpanContextConfig{
+			TraceID: traceID,
+			SpanID:  spanID,
+		})
+
+		buf := &bytes.Buffer{}
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger := slogging.FromContext(r.Context())
+			require.NotNil(t, logger)
+			logger.Info("test message")
+			w.WriteHeader(http.StatusOK)
+		})
+
+		ctx := trace.ContextWithSpanContext(t.Context(), spanContext)
+		ctx = slogging.ContextWithLogger(ctx, slog.New(slog.NewTextHandler(buf, nil)))
+		req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		middleware(testHandler).ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Contains(t, buf.String(), "12345678901234567890123456789012")
+		assert.Contains(t, buf.String(), "1234567890123456")
 	})
 }
 
@@ -169,6 +204,50 @@ func TestNewRequestIDLoggerMiddleware(t *testing.T) {
 
 		assert.True(t, handlerCalled)
 		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("middleware execution with context logger and request ID", func(t *testing.T) {
+		middleware := NewRequestIDLoggerMiddleware(nil)
+
+		buf := &bytes.Buffer{}
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger := slogging.FromContext(r.Context())
+			require.NotNil(t, logger)
+			logger.Info("test message")
+			w.WriteHeader(http.StatusOK)
+		})
+
+		ctx := ContextWithRequestID(t.Context(), "test-request-id")
+		ctx = slogging.ContextWithLogger(ctx, slog.New(slog.NewTextHandler(buf, nil)))
+		req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		middleware(testHandler).ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Contains(t, buf.String(), "test-request-id")
+	})
+
+	t.Run("middleware execution with context logger and no request ID", func(t *testing.T) {
+		middleware := NewRequestIDLoggerMiddleware(nil)
+
+		buf := &bytes.Buffer{}
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger := slogging.FromContext(r.Context())
+			require.NotNil(t, logger)
+			logger.Info("test message")
+			w.WriteHeader(http.StatusOK)
+		})
+
+		ctx := slogging.ContextWithLogger(t.Context(), slog.New(slog.NewTextHandler(buf, nil)))
+		req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		middleware(testHandler).ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Contains(t, buf.String(), "test message")
+		assert.NotContains(t, buf.String(), "request_id")
 	})
 }
 

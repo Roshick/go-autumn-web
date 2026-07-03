@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,6 +18,12 @@ type TestRequestBody struct {
 	Email string `json:"email"`
 }
 
+type failingRenderer struct{}
+
+func (r *failingRenderer) Render(http.ResponseWriter, *http.Request) error {
+	return errors.New("render failure")
+}
+
 func TestRequestBodyFromContext(t *testing.T) {
 	ctx := context.Background()
 	testBody := TestRequestBody{Name: "John", Email: "john@localhost"}
@@ -26,6 +33,11 @@ func TestRequestBodyFromContext(t *testing.T) {
 	result := RequestBodyFromContext[TestRequestBody](ctxWithValue)
 
 	assert.Equal(t, testBody, result)
+
+	// Test without value in context
+	zeroResult := RequestBodyFromContext[TestRequestBody](ctx)
+
+	assert.Equal(t, TestRequestBody{}, zeroResult)
 }
 
 func TestDefaultContextRequestBodyMiddlewareOptions(t *testing.T) {
@@ -104,6 +116,23 @@ func TestNewContextRequestBodyMiddleware(t *testing.T) {
 		assert.False(t, handlerCalled)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+
+	t.Run("panics when error response fails to render", func(t *testing.T) {
+		opts := &ContextRequestBodyMiddlewareOptions{
+			ErrorResponse: &failingRenderer{},
+		}
+		middleware := NewContextRequestBodyMiddleware[TestRequestBody](opts)
+
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+
+		req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("invalid json")))
+		req.Header.Set("Content-Type", "application/json")
+		rr := httptest.NewRecorder()
+
+		assert.Panics(t, func() {
+			middleware(testHandler).ServeHTTP(rr, req)
+		})
+	})
 }
 
 func TestDefaultRequiredHeaderMiddlewareOptions(t *testing.T) {
@@ -176,5 +205,21 @@ func TestNewRequiredHeaderMiddleware(t *testing.T) {
 
 		assert.False(t, handlerCalled)
 		assert.Equal(t, http.StatusPreconditionRequired, rr.Code) // Changed from StatusBadRequest
+	})
+
+	t.Run("panics when error response fails to render", func(t *testing.T) {
+		opts := &RequiredHeaderMiddlewareOptions{
+			ErrorResponse: &failingRenderer{},
+		}
+		middleware := NewRequiredHeaderMiddleware(headerName, opts)
+
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rr := httptest.NewRecorder()
+
+		assert.Panics(t, func() {
+			middleware(testHandler).ServeHTTP(rr, req)
+		})
 	})
 }

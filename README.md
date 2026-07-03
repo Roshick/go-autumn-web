@@ -293,7 +293,7 @@ func SetupMiddleware(r chi.Router) {
 - `github.com/go-chi/chi/v5` - HTTP router
 - `github.com/go-chi/render` - Response rendering
 - `go.opentelemetry.io/otel` - Observability
-- `github.com/lestrrat-go/jwx/v3` - JWT handling
+- `github.com/lestrrat-go/jwx/v4` - JWT handling
 - `github.com/StephanHCB/go-autumn-logging` - Logging framework
 
 ## License

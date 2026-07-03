@@ -3,6 +3,9 @@ name: Build
 on:
   push: {}
 
+env:
+  GOEXPERIMENT: jsonv2
+
 jobs:
   test:
     name: 🧪 Test

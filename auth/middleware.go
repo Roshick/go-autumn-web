@@ -9,7 +9,7 @@ import (
 	weberrors "github.com/Roshick/go-autumn-web/errors"
 	"github.com/Roshick/go-autumn-web/header"
 	"github.com/go-chi/render"
-	"github.com/lestrrat-go/jwx/v3/jwt"
+	"github.com/lestrrat-go/jwx/v4/jwt"
 )
 
 // AuthorizationMiddleware //
