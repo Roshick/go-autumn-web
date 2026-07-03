@@ -1,6 +1,7 @@
 package resiliency
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type failingRenderer struct{}
+
+func (r *failingRenderer) Render(http.ResponseWriter, *http.Request) error {
+	return errors.New("render failure")
+}
 
 func TestDefaultPanicRecoveryMiddlewareOptions(t *testing.T) {
 	opts := DefaultPanicRecoveryMiddlewareOptions()
@@ -39,6 +46,24 @@ func TestNewPanicRecoveryMiddleware(t *testing.T) {
 
 		assert.True(t, handlerCalled)
 		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("panics when error response fails to render", func(t *testing.T) {
+		opts := &PanicRecoveryMiddlewareOptions{
+			ErrorResponse: &failingRenderer{},
+		}
+		middleware := NewPanicRecoveryMiddleware(opts)
+
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			panic("test panic")
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rr := httptest.NewRecorder()
+
+		assert.Panics(t, func() {
+			middleware(testHandler).ServeHTTP(rr, req)
+		})
 	})
 
 	t.Run("panic recovery", func(t *testing.T) {

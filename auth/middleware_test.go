@@ -6,9 +6,25 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/lestrrat-go/jwx/v4/jwa"
+	"github.com/lestrrat-go/jwx/v4/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func newSignedToken(t *testing.T) string {
+	t.Helper()
+
+	privateKey, _ := newTestKeyPair(t)
+
+	token := jwt.New()
+	require.NoError(t, token.Set(jwt.SubjectKey, "test-subject"))
+
+	signed, err := jwt.Sign(token, jwt.WithKey(jwa.RS256(), privateKey))
+	require.NoError(t, err)
+
+	return string(signed)
+}
 
 func TestAllowBasicAuthUser(t *testing.T) {
 	tests := []struct {
@@ -157,5 +173,135 @@ func TestNewAuthorizationMiddleware(t *testing.T) {
 
 		assert.True(t, handlerCalled)
 		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+}
+
+func TestAllowBearerTokenUser(t *testing.T) {
+	opts := AllowBearerTokenUserOptions{
+		ParseOptions: []jwt.ParseOption{jwt.WithVerify(false)},
+	}
+
+	t.Run("valid bearer token", func(t *testing.T) {
+		authFn := AllowBearerTokenUser(opts)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+newSignedToken(t))
+
+		assert.True(t, authFn(req))
+	})
+
+	t.Run("no auth header", func(t *testing.T) {
+		authFn := AllowBearerTokenUser(opts)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+
+		assert.False(t, authFn(req))
+	})
+
+	t.Run("malformed bearer token", func(t *testing.T) {
+		authFn := AllowBearerTokenUser(opts)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer not-a-jwt")
+
+		assert.False(t, authFn(req))
+	})
+}
+
+func TestDefaultContextJWTMiddlewareOptions(t *testing.T) {
+	opts := DefaultContextJWTMiddlewareOptions()
+
+	require.NotNil(t, opts)
+	assert.NotNil(t, opts.ErrorResponse)
+}
+
+func TestNewContextJWTMiddleware(t *testing.T) {
+	t.Run("with nil options", func(t *testing.T) {
+		middleware := NewContextJWTMiddleware(nil)
+		assert.NotNil(t, middleware)
+	})
+
+	t.Run("no authorization header passes through without token", func(t *testing.T) {
+		middleware := NewContextJWTMiddleware(nil)
+
+		handlerCalled := false
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handlerCalled = true
+			assert.Nil(t, JWTFromContext(r.Context()))
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rr := httptest.NewRecorder()
+
+		middleware(testHandler).ServeHTTP(rr, req)
+
+		assert.True(t, handlerCalled)
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("non-bearer authorization header passes through without token", func(t *testing.T) {
+		middleware := NewContextJWTMiddleware(nil)
+
+		handlerCalled := false
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handlerCalled = true
+			assert.Nil(t, JWTFromContext(r.Context()))
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte("user:pass")))
+		rr := httptest.NewRecorder()
+
+		middleware(testHandler).ServeHTTP(rr, req)
+
+		assert.True(t, handlerCalled)
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("valid bearer token adds token to context", func(t *testing.T) {
+		middleware := NewContextJWTMiddleware(nil)
+
+		handlerCalled := false
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handlerCalled = true
+
+			token := JWTFromContext(r.Context())
+			require.NotNil(t, token)
+
+			subject, ok := token.Subject()
+			require.True(t, ok)
+			assert.Equal(t, "test-subject", subject)
+
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+newSignedToken(t))
+		rr := httptest.NewRecorder()
+
+		middleware(testHandler).ServeHTTP(rr, req)
+
+		assert.True(t, handlerCalled)
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("malformed bearer token renders error response", func(t *testing.T) {
+		middleware := NewContextJWTMiddleware(nil)
+
+		handlerCalled := false
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handlerCalled = true
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer not-a-jwt")
+		rr := httptest.NewRecorder()
+
+		middleware(testHandler).ServeHTTP(rr, req)
+
+		assert.False(t, handlerCalled)
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 }
