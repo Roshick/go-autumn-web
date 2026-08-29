@@ -3,7 +3,7 @@ module github.com/Roshick/go-autumn-web
 go 1.25.0
 
 require (
-	github.com/Roshick/go-autumn-slog v0.5.1
+	github.com/Roshick/go-autumn-slog v0.5.2
 	github.com/StephanHCB/go-autumn-logging v0.4.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/render v1.0.3
