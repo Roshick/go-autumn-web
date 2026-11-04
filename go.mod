@@ -1,6 +1,6 @@
 module github.com/Roshick/go-autumn-web
 
-go 1.26.0
+go 1.26.10
 
 require (
 	github.com/Roshick/go-autumn-slog v0.5.3
@@ -8,6 +8,7 @@ require (
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/render v1.0.3
 	github.com/lestrrat-go/jwx/v3 v3.4.0
+	github.com/lestrrat-go/jwx/v4 v4.6.0
 	github.com/sony/gobreaker/v2 v2.4.0
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel v1.47.0
